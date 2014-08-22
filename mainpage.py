@@ -14,6 +14,7 @@ class TogglCredential(ndb.Model):
 MAINPAGE_TEMPLATE = """
     <html>
         <body>
+            <a href="%s">%s</a>
             <h2>Enter your details</h2>
             <form action="/store" method="post">
                 toggl API token: 
@@ -26,7 +27,7 @@ MAINPAGE_TEMPLATE = """
             </form>
             <br>
             <form action="/toggldata method="get">
-                <input type="button" value"Get Data">
+                <input type="submit" value"Get Data">
             </form>
         </body>
     </html>
@@ -36,7 +37,9 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         """ Create credential entry page using the template """
         self.response.headers['content-type'] = 'text/html'
-        self.response.write(MAINPAGE_TEMPLATE % str(users.get_current_user()))
+        url = users.create_logout_url(self.request.url)
+        url_text = 'Logout'        
+        self.response.write(MAINPAGE_TEMPLATE % (url, url_text, str(users.get_current_user())))
 
 
 class Store(webapp2.RequestHandler):
