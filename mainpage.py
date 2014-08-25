@@ -3,6 +3,7 @@ import urllib2
 import json
 import base64
 import cgi
+import dateutil.parser
 
 from google.appengine.ext import ndb
 from google.appengine.api import users
@@ -10,6 +11,14 @@ from google.appengine.api import users
 class TogglCredential(ndb.Model):
     api_token = ndb.StringProperty()
     workspace_id = ndb.IntegerProperty()
+
+class TogglTask(ndb.Model):
+    toggl_id = ndb.IntegerProperty()
+    toggl_description = ndb.StringProperty()
+    toggl_pid = ndb.IntegerProperty()
+    toggl_project = ndb.StringProperty()
+    toggl_updated = ndb.DateTimeProperty()
+    toggl_dur = ndb.IntegerProperty()
 
 MAINPAGE_TEMPLATE = """
     <html>
@@ -26,9 +35,7 @@ MAINPAGE_TEMPLATE = """
                 Logged in as %s         
             </form>
             <br>
-            <form action="/toggldata method="get">
-                <input type="submit" value"Get Data">
-            </form>
+            <a href="/toggldata">Data here!</a>
         </body>
     </html>
 """
@@ -56,18 +63,30 @@ class Store(webapp2.RequestHandler):
 
 class TogglData(webapp2.RequestHandler):
     def get(self):
-        """ Get data from toggl 
+        """ Get data from toggl """
         user = users.get_current_user()
-        togglCredential = togglCredential...
-        workspace_id = ndb....
-        request = urllib2.Request("https://toggl.com/reports/api/v2/details?user_agent=andrzej.ruszczewski@gmail.com&workspace_id=%s" % workspace_id)
-        api_token = ndb...
+        togglCredential = TogglCredential.get_by_id(str(users.get_current_user()))
+        workspace_id = togglCredential.workspace_id
+        request = urllib2.Request("https://toggl.com/reports/api/v2/details?user_agent=TogglToEvernote&workspace_id=%s" % workspace_id)
+        api_token = togglCredential.api_token
         base64string = base64.encodestring('%s:%s' % (api_token, 'api_token')).replace('\n', '')
         request.add_header("Authorization", "Basic %s" % base64string)
         data = json.load(urllib2.urlopen(request))
-        self.response.headers['content-type'] = 'application/json'
-        self.response.write(json.dumps(data, indent=4, sort_keys=True))
-        """
+        for task in data['data']:
+            qry = TogglTask.query(TogglTask.toggl_id == task['id'])
+            if qry.get() == None:
+                self.response.write(str(task['id']) + ' does not exist in DataStore<br>')
+                newTask = TogglTask()
+                newTask.toggl_id = task['id']
+                newTask.toggl_description = task['description']
+                newTask.toggl_pid = task['pid']
+                newTask.toggl_project = task['project']
+                newTask.toggl_updated = dateutil.parser.parse(task['updated'])
+                newTask.toggl_dur = task['dur']
+                newTask.put()         
+                self.response.write(str(task['id']) + ' created in DataStore<br>')
+        #self.response.headers['content-type'] = 'application/json'
+        #self.response.write(json.dumps(data, indent=4, sort_keys=True))        
 
 
 application = webapp2.WSGIApplication([
