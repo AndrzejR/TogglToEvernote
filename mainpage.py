@@ -81,7 +81,7 @@ class TogglData(webapp2.RequestHandler):
                 newTask.toggl_description = task['description']
                 newTask.toggl_pid = task['pid']
                 newTask.toggl_project = task['project']
-                newTask.toggl_updated = dateutil.parser.parse(task['updated'])
+                newTask.toggl_updated = dateutil.parser.parse(task['updated']).replace(tzinfo=None)
                 newTask.toggl_dur = task['dur']
                 newTask.put()         
                 self.response.write(str(task['id']) + ' created in DataStore<br>')
