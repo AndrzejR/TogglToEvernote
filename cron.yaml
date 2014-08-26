@@ -1,0 +1,4 @@
+cron:
+- description: get data from toggl
+  url: /toggldata
+  schedule: every 5 minutes

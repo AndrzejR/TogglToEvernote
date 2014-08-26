@@ -5,9 +5,13 @@ api_version: 1
 threadsafe: true
 
 handlers:
-- url: /.*
+- url: /
   script: mainpage.application
   login: required
+
+- url: /toggldata
+  script: mainpage.application
+  login: admin
 
 libraries:
 - name: webapp2

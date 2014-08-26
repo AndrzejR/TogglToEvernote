@@ -63,30 +63,31 @@ class Store(webapp2.RequestHandler):
 
 class TogglData(webapp2.RequestHandler):
     def get(self):
-        """ Get data from toggl """
-        user = users.get_current_user()
-        togglCredential = TogglCredential.get_by_id(str(users.get_current_user()))
-        workspace_id = togglCredential.workspace_id
-        request = urllib2.Request("https://toggl.com/reports/api/v2/details?user_agent=TogglToEvernote&workspace_id=%s" % workspace_id)
-        api_token = togglCredential.api_token
-        base64string = base64.encodestring('%s:%s' % (api_token, 'api_token')).replace('\n', '')
-        request.add_header("Authorization", "Basic %s" % base64string)
-        data = json.load(urllib2.urlopen(request))
-        for task in data['data']:
-            qry = TogglTask.query(TogglTask.toggl_id == task['id'])
-            if qry.get() == None:
-                self.response.write(str(task['id']) + ' does not exist in DataStore<br>')
-                newTask = TogglTask()
-                newTask.toggl_id = task['id']
-                newTask.toggl_description = task['description']
-                newTask.toggl_pid = task['pid']
-                newTask.toggl_project = task['project']
-                newTask.toggl_updated = dateutil.parser.parse(task['updated']).replace(tzinfo=None)
-                newTask.toggl_dur = task['dur']
-                newTask.put()         
-                self.response.write(str(task['id']) + ' created in DataStore<br>')
-        #self.response.headers['content-type'] = 'application/json'
-        #self.response.write(json.dumps(data, indent=4, sort_keys=True))        
+        """ Get data from toggl """        
+        credentials = TogglCredential.query().fetch(10) # get_by_id(str(users.get_current_user()))
+        for togglCredential in credentials:
+            workspace_id = togglCredential.workspace_id
+            # stripped from URLFetch - 'host' ??
+            request = urllib2.Request("https://toggl.com/reports/api/v2/details?user_agent=TogglToEvernote&workspace_id=%s" % workspace_id)
+            api_token = togglCredential.api_token
+            base64string = base64.encodestring('%s:%s' % (api_token, 'api_token')).replace('\n', '')
+            request.add_header("Authorization", "Basic %s" % base64string)
+            data = json.load(urllib2.urlopen(request))
+            for task in data['data']:
+                qry = TogglTask.query(TogglTask.toggl_id == task['id'])
+                if qry.get() == None:
+                    #self.response.write(str(task['id']) + ' does not exist in DataStore<br>')
+                    newTask = TogglTask()
+                    newTask.toggl_id = task['id']
+                    newTask.toggl_description = task['description']
+                    newTask.toggl_pid = task['pid']
+                    newTask.toggl_project = task['project']
+                    newTask.toggl_updated = dateutil.parser.parse(task['updated']).replace(tzinfo=None) #needs to actually convert to UTC...
+                    newTask.toggl_dur = task['dur']
+                    newTask.put()         
+                    #self.response.write(str(task['id']) + ' created in DataStore<br>')
+            #self.response.headers['content-type'] = 'application/json'
+            #self.response.write(json.dumps(data, indent=4, sort_keys=True))        
 
 
 application = webapp2.WSGIApplication([
